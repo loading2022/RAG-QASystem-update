@@ -1,0 +1,15 @@
+Flask
+langchain
+langchain-community
+PyPDF2
+python-docx
+Werkzeug
+flask-cors
+pymssql
+openai 
+chromadb
+tiktoken
+pydantic
+doc2docx
+langchain-openai
+langchain-chroma
