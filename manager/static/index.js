@@ -123,7 +123,7 @@ folderList.addEventListener("click", function(e) {
       )};
     });
   }
-  if (upload) {
+
     var upload=document.getElementById("upload-form");
     upload.addEventListener('change', function(e) {
       e.preventDefault();
@@ -143,5 +143,5 @@ folderList.addEventListener("click", function(e) {
           console.error('Error:', error);
         });
     });
-  }
+  
 });
