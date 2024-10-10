@@ -61,6 +61,10 @@ def upload_file():
     folder_name = request.form.get('folderName')
     filename_list = []
     file_chunk_map = {} 
+    json_path = os.path.join(os.path.dirname(__file__), 'file_chunk.json')
+    if os.path.exists(json_path):
+        with open(json_path, 'r', encoding='utf-8') as f:
+            file_chunk_map = json.load(f)
     for root, dirs, files in os.walk(folder_name):
         for file in files:
             file_path = os.path.relpath(os.path.join(root, file), start=data_folder)
