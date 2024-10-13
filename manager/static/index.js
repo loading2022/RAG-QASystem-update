@@ -28,6 +28,7 @@ function updateList(folderName){
       }
     })
     .catch(error => {
+      alert("Error:", error);
       console.error('Error:', error);
     });
 }
@@ -80,13 +81,13 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   })
   .catch((error) => {
+    alert("Error:", error);
     console.error('Error:', error);
   });
 });
 
 var folderName = ''; 
 folderList.addEventListener("click", function(e) {
-  console.log("click");
   var fileList=document.querySelector(".file-list");
   fileList.innerHTML="";
   if (e.target && e.target.matches(".folder")) { 
@@ -123,7 +124,7 @@ folderList.addEventListener("click", function(e) {
       )};
     });
   }
-
+ 
     var upload=document.getElementById("upload-form");
     upload.addEventListener('change', function(e) {
       e.preventDefault();

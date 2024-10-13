@@ -1,31 +1,31 @@
 from flask import Flask, render_template, request, jsonify
-import os
-import time
-import json
-import openai
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from langchain_chroma import Chroma
-from langchain.chains.question_answering import load_qa_chain
-from langchain_community.callbacks import get_openai_callback
-from langchain_community.chat_models import ChatOpenAI
-from langchain_community.document_loaders import SeleniumURLLoader
 from langchain_core.documents import Document as LangChainDocument
 from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
 from doc2docx import convert
 from werkzeug.utils import secure_filename
 from uuid import uuid4
+from dotenv import load_dotenv
+import os
+import time
+import json
 
-
-
-openai.api_key = os.getenv('OPENAI_API_KEY')
+load_dotenv()
+os.environ["AZURE_OPENAI_ENDPOINT"] = os.getenv("AZURE_OPENAI_ENDPOINT")
+os.environ["AZURE_OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_API_KEY")
 
 vector_store = Chroma(
-    collection_name="fareastonHRupdate",
-    embedding_function=OpenAIEmbeddings(),
-    persist_directory="../db/fareastonHPupdate2"
+    collection_name = "fareastonHR",
+    embedding_function = AzureOpenAIEmbeddings(
+        model="text-embedding-ada-002", 
+        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION")
+    ),
+    persist_directory="../db/fareastonHRupdate2"
 )
+
 app = Flask(__name__)
 
 documents=[]
@@ -60,11 +60,12 @@ require_extension=['.docx','.pdf','.doc']
 def upload_file():
     folder_name = request.form.get('folderName')
     filename_list = []
-    file_chunk_map = {} 
-    json_path = os.path.join(os.path.dirname(__file__), 'file_chunk.json')
+    file_chunk_map = {}
+    json_path = os.path.join(os.path.dirname(__file__), 'file_chunk_ids.json')
     if os.path.exists(json_path):
         with open(json_path, 'r', encoding='utf-8') as f:
             file_chunk_map = json.load(f)
+             
     for root, dirs, files in os.walk(folder_name):
         for file in files:
             file_path = os.path.relpath(os.path.join(root, file), start=data_folder)
@@ -98,7 +99,6 @@ def upload_file():
                             convert(file_path, output_path)
                             os.remove(file_path)
                         text = get_text_from_docx(output_path)
-                    print(text)
                     chunks = text_splitter.split_text(text)
                     uuids = []
                     for chunk in chunks:
@@ -110,9 +110,7 @@ def upload_file():
                     file_chunk_map[filename] = uuids 
         if documents:
             vector_store.add_documents(documents=documents, ids=[doc.id for doc in documents])
-            print("DB Save !")
-           
-            with open('file_chunk_ids.json', 'w', encoding='utf-8') as f:
+            with open('file_chunk.json', 'w', encoding='utf-8') as f:
                 json.dump(file_chunk_map, f, ensure_ascii=False)
             return jsonify({'filenames': filename_list, 'extensions': extension_list})
         
@@ -123,7 +121,6 @@ def deleteFile():
     data = request.json
     filename = data['filename']
     folderName = data['folderName']
-    print(filename)
     file_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', folderName, filename)
     file = file_path
     with open('file_chunk_ids.json', 'r', encoding='utf-8') as f:
@@ -169,19 +166,6 @@ def get_folders():
             folders.append(folder_info)
     return jsonify(folders=folders)
 
-"""@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['email']
-        password = request.form['pwd']
-       
-        if username=='123@gmail.com' and password=='123':
-            return render_template('manager.html')
-        else:
-            error_message = '登入失敗，請檢查您的帳號密碼'
-            return render_template('login.html', error_message=error_message)
-    return render_template('login.html')
-"""
 if __name__ == '__main__':
     app.run(debug=True, port = 4999)
 

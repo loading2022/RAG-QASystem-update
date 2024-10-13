@@ -13,3 +13,4 @@ pydantic
 doc2docx
 langchain-openai
 langchain-chroma
+python-dotenv

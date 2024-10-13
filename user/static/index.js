@@ -24,7 +24,10 @@ function startRecording() {
                 uploadAudio(audioBlob);
             });
         })
-        .catch(error => console.error('錄音啟動失敗:', error));
+        .catch(error => {
+            alert("錄音啟動失敗: error", error);
+            console.error('錄音啟動失敗:', error)}
+        );
 }
 
 function stopRecording() {
@@ -36,7 +39,7 @@ function stopRecording() {
 
 function uploadAudio(blob) {
     const formData = new FormData();
-    formData.append('audio', blob, 'recording.wav');
+    formData.append('audio', blob, 'recording.webm');
 
     fetch('/upload-audio', {
         method: 'POST',
@@ -44,14 +47,16 @@ function uploadAudio(blob) {
     })
     .then(response => response.json())
     .then(data => {
-        console.log(data);
         if (data.transcript) {
             userInput.value = data.transcript;
         } else {
             userInput.value = '錯誤: ' + data.message;
         }
     })
-    .catch(error => console.error('錯誤:', error));
+    .catch(error => {
+        alert("Error:", error);
+        console.error('錯誤:', error)
+    });
 }
 document.addEventListener("DOMContentLoaded", function() {
     const chatForm = document.getElementById("chat-form");

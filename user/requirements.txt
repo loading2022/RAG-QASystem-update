@@ -6,3 +6,6 @@ tiktoken
 langchain-openai
 langchain-community
 chromadb
+openai-whisper
+python-dotenv
+torchaudio
