@@ -1,11 +1,10 @@
 Flask
 langchain
-openai
-opencc-python-reimplemented
 tiktoken
 langchain-openai
+langchain-chroma
 langchain-community
 chromadb
-openai-whisper
 python-dotenv
-torchaudio
+opencc-python-reimplemented
+pydub
