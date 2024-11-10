@@ -12,26 +12,37 @@ import tempfile
 import io
 import os
 import whisper
-
+import openai
+from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
+from langchain.retrievers.multi_query import MultiQueryRetriever
 
 load_dotenv()
 client = OpenAI()
 model = whisper.load_model("base")
-os.environ["AZURE_OPENAI_ENDPOINT"] = os.getenv("AZURE_OPENAI_ENDPOINT")
-os.environ["AZURE_OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_API_KEY")
+openai.api_key = os.getenv('OPENAI_API_KEY')
+embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
 
-embeddings = AzureOpenAIEmbeddings(
+#os.environ["AZURE_OPENAI_ENDPOINT"] = os.getenv("AZURE_OPENAI_ENDPOINT")
+#os.environ["AZURE_OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_API_KEY")
+
+"""embeddings = AzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         openai_api_version=os.getenv("AZURE_OPENAI_EMBEDDING_API_VERSION")
-)
+)"""
 app = Flask(__name__)
-vector_store = Chroma(
+"""vector_store = Chroma(
     collection_name = "fareastonHR",
     embedding_function = AzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         openai_api_version=os.getenv("AZURE_OPENAI_EMBEDDING_API_VERSION")
     ),
     persist_directory = "../db/fareastonHRupdate2"
+)"""
+vector_store = Chroma(
+    #collection_name="fareastonHRupdate1",
+    embedding_function=OpenAIEmbeddings(),
+    persist_directory="../db/fareastonHR"
 )
 
 class NamedBytesIO(io.BytesIO):
@@ -51,17 +62,34 @@ def index():
 @app.route('/get_response', methods=['POST'])
 def get_response():
     user_input = request.form.get('user_input')
-    db = None
     if not user_input:
         return jsonify({'error': 'No user input provided'})
     if user_input:
-        docs = vector_store.similarity_search(user_input)
-        llm = AzureChatOpenAI(
+        sources = []
+        llm = ChatOpenAI(temperature=0)
+        retriever_from_llm = MultiQueryRetriever.from_llm(
+            retriever=vector_store.as_retriever(), llm=llm
+        )
+        
+        docs = retriever_from_llm.invoke(user_input)
+        
+        #docs = vector_store.similarity_search_with_relevance_scores(user_input)
+    
+        for doc in docs:
+            doc_source = doc.metadata['source']
+            if doc_source in sources:
+                continue
+            sources.append(doc_source)
+            
+        """llm = AzureChatOpenAI(
             azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT"),
             api_version = os.getenv("AZURE_OPENAI_CHAT_API_VERSION"),
             temperature = 0.2
+        )"""
+        llm = ChatOpenAI(
+            model_name="gpt-4o",
+            temperature=0.5
         )
-
         chain = load_qa_chain(llm, chain_type="stuff")
 
         with get_openai_callback() as cb:
@@ -69,7 +97,7 @@ def get_response():
         cc = OpenCC('s2t')
         answer=cc.convert(response['output_text'])
         chat_history.append({'user': user_input, 'assistant': response['output_text']})
-        return jsonify({'response': answer})
+        return jsonify({'response': answer, "sources": sources})
 
 @app.route('/upload-audio', methods=['POST'])
 def upload_audio():
